@@ -37,7 +37,7 @@ All processing happens between your Obsidian and your chosen LLM provider. **You
 
 ## Installation
 
-### From Obsidian Community Plugins *(coming soon)*
+### From Obsidian Community Plugins
 
 1. Open Obsidian → Settings → Community Plugins
 2. Search for "Literature Review Synthesizer"
@@ -125,4 +125,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 ## Support
 
 For bug reports and feature requests, please open an issue on GitHub.
-For license activation issues, contact via Gumroad.
+For license activation issues, open a GitHub Issue in this repository.
