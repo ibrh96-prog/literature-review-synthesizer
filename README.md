@@ -37,7 +37,7 @@ All processing happens between your Obsidian and your chosen LLM provider. **You
 
 ## Installation
 
-### From Obsidian Community Plugins *(coming soon)*
+### From Obsidian Community Plugins
 
 1. Open Obsidian → Settings → Community Plugins
 2. Search for "Literature Review Synthesizer"
@@ -45,7 +45,7 @@ All processing happens between your Obsidian and your chosen LLM provider. **You
 
 ### Manual Installation
 
-1. Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/literature-review-synthesizer/releases)
+1. Download the latest release from [GitHub Releases](https://github.com/ibrh96-prog/literature-review-synthesizer/releases)
 2. Extract into your vault's `.obsidian/plugins/literature-review-synthesizer/` folder
 3. Enable the plugin in Settings → Community Plugins
 
@@ -84,7 +84,7 @@ The generated note will open automatically in your vault under the `Literature R
 | All LLM providers | ✅ | ✅ |
 | Custom Base URL | ✅ | ✅ |
 
-**Get Pro:** [Purchase on Gumroad](https://gumroad.com/YOUR_LINK)
+**Get Pro:** License available at launch — contact via GitHub Issues to be notified.
 
 ---
 
@@ -93,6 +93,7 @@ The generated note will open automatically in your vault under the `Literature R
 - Your API key is stored locally in Obsidian's plugin data
 - Your notes are sent only to your chosen LLM provider, not to any server controlled by this plugin's developer
 - No analytics, no telemetry, no tracking of any kind
+- **Network use:** This plugin sends your note content to the LLM provider you configure (OpenAI, Anthropic, or a compatible endpoint). No data is sent to the plugin developer's servers. Internet access is required only for LLM API calls.
 
 ---
 
@@ -124,4 +125,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 ## Support
 
 For bug reports and feature requests, please open an issue on GitHub.
-For license activation issues, contact via Gumroad.
+For license activation issues, open a GitHub Issue in this repository.

@@ -14,11 +14,10 @@
     "literature-review",
     "llm"
   ],
-  "author": "",
+  "author": "ibrh96-prog",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "builtin-modules": "^4.0.0",
     "esbuild": "^0.25.0",
     "obsidian": "latest",
     "tslib": "^2.6.0",
