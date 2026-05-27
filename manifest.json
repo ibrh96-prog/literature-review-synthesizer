@@ -1,11 +1,11 @@
 {
   "id": "literature-review-synthesizer",
   "name": "Literature Review Synthesizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.4.0",
   "description": "Transform your academic reading notes into structured literature review outputs using LLMs.",
-  "author": "Your Name",
-  "authorUrl": "",
+  "author": "ibrh96-prog",
+  "authorUrl": "https://github.com/ibrh96-prog",
   "fundingUrl": "",
   "isDesktopOnly": false
 }
