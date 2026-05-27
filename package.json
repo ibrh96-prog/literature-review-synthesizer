@@ -14,7 +14,7 @@
     "literature-review",
     "llm"
   ],
-  "author": "",
+  "author": "ibrh96-prog",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",
