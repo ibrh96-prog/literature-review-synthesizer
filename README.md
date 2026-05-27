@@ -84,7 +84,7 @@ The generated note will open automatically in your vault under the `Literature R
 | All LLM providers | ✅ | ✅ |
 | Custom Base URL | ✅ | ✅ |
 
-**Get Pro:** [Purchase on Gumroad](https://gumroad.com/YOUR_LINK)
+**Get Pro:** License available at launch — contact via GitHub Issues to be notified.
 
 ---
 
