@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Literature Review Synthesizer — Mint License Key</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #7c6af7; }
+    h2 { color: #a89cf7; margin-top: 30px; }
+    .card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 20px; margin: 16px 0; }
+    .warning { background: #3a1a00; border: 1px solid #ff6b00; border-radius: 8px; padding: 16px; margin: 16px 0; color: #ffaa55; }
+    .success { background: #003a1a; border: 1px solid #00aa55; border-radius: 8px; padding: 16px; margin: 16px 0; color: #55ffaa; }
+    .error { background: #3a0000; border: 1px solid #aa0000; border-radius: 8px; padding: 16px; margin: 16px 0; color: #ff5555; display: none; }
+    button { background: #7c6af7; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 8px 4px; }
+    button:hover { background: #6a58e0; }
+    button.secondary { background: #2a2a4a; color: #a0a0c0; }
+    input, textarea { width: 100%; background: #0d0d1a; color: #e0e0e0; border: 1px solid #2a2a4a; border-radius: 4px; padding: 10px 12px; font-size: 14px; box-sizing: border-box; margin-top: 4px; }
+    textarea { color: #00ff88; font-family: monospace; font-size: 12px; resize: vertical; }
+    label { display: block; margin-top: 14px; margin-bottom: 4px; color: #8888aa; font-size: 14px; }
+    #output { display: none; }
+  </style>
+</head>
+<body>
+  <h1>🪙 License Key Minter</h1>
+  <p>Literature Review Synthesizer — Developer Tool</p>
+  <div class="warning">⚠️ Runs entirely in your browser. Nothing sent to any server. Keep private key secret.</div>
+
+  <div class="card">
+    <h2>Step 1 — Private Key</h2>
+    <label>Private Key (64 hex chars)</label>
+    <input type="password" id="privateKey" placeholder="Paste your private key hex here">
+  </div>
+
+  <div class="card">
+    <h2>Step 2 — Customer Information</h2>
+    <label>Customer Email</label>
+    <input type="email" id="email" placeholder="customer@example.com">
+    <label>Purchase ID</label>
+    <input type="text" id="purchaseId" placeholder="e.g. GUMROAD-ABC123">
+    <label>Purchase Date</label>
+    <input type="date" id="purchaseDate">
+  </div>
+
+  <button onclick="mintLicense()">Generate License Key</button>
+  <div class="error" id="errorBox"></div>
+
+  <div id="output">
+    <div class="success">✅ License key generated!</div>
+    <div class="card">
+      <label>License Key (send to customer)</label>
+      <textarea id="licenseKey" rows="5" readonly></textarea>
+      <button class="secondary" onclick="copyField('licenseKey')">Copy License Key</button>
+    </div>
+    <div class="card">
+      <label>Email Template</label>
+      <textarea id="emailTemplate" rows="14" readonly></textarea>
+      <button class="secondary" onclick="copyField('emailTemplate')">Copy Email</button>
+    </div>
+  </div>
+
+<script>
+// ── Minimal Ed25519 implementation (self-contained, no dependencies) ──
+// Based on the public domain TweetNaCl / RFC 8032 spec
+
+const ED25519 = (() => {
+  const P = 2n ** 255n - 19n;
+  const L = 2n ** 252n + 27742317777372353535851937790883648493n;
+  const d = -4513249062541557337682894930092624173785641285191125241628941591882900924598840740n;
+  const I = 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
+
+  function mod(a, b = P) { return ((a % b) + b) % b; }
+  function pow2(x, power) { let r = x; for (let i = 0n; i < power - 1n; i++) r = mod(r * r); return r; }
+  function inv(x) { return mod(x ** (P - 2n), P); }
+
+  const Gx = 15112221349535807912866137220509078750507884956996801354487994049607184097354n;
+  const Gy = 46316835694926478169428394003475163141307993866256225615783033011972563756242n;
+  const G = [Gx, Gy, 1n, mod(Gx * Gy)];
+
+  function add(A, B) {
+    const [X1,Y1,Z1,T1] = A, [X2,Y2,Z2,T2] = B;
+    const a = mod((Y1-X1)*(Y2-X2)), b = mod((Y1+X1)*(Y2+X2));
+    const c = mod(T1*2n*d*T2), dd = mod(Z1*2n*Z2);
+    const e = b-a, f = dd-c, g = dd+c, h = b+a;
+    return [mod(e*f), mod(g*h), mod(f*g), mod(e*h)];
+  }
+
+  function mul(s, P) {
+    let R = [0n,1n,1n,0n], Q = P;
+    while (s > 0n) { if (s & 1n) R = add(R, Q); Q = add(Q, Q); s >>= 1n; }
+    return R;
+  }
+
+  function encodePoint(P) {
+    const [X,Y,Z] = P, zi = inv(Z);
+    const x = mod(X*zi), y = mod(Y*zi);
+    const out = toBytesLE(y);
+    if (x & 1n) out[31] |= 0x80;
+    return out;
+  }
+
+  function toBytesLE(n) {
+    const b = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) { b[i] = Number(n & 0xffn); n >>= 8n; }
+    return b;
+  }
+
+  function fromBytesLE(b) {
+    let n = 0n;
+    for (let i = 31; i >= 0; i--) n = (n << 8n) | BigInt(b[i]);
+    return n;
+  }
+
+  async function sha512(data) {
+    const buf = await crypto.subtle.digest("SHA-512", data);
+    return new Uint8Array(buf);
+  }
+
+  async function getPublicKey(priv) {
+    const h = await sha512(priv);
+    const a = clamp(h.slice(0, 32));
+    return encodePoint(mul(fromBytesLE(a), G));
+  }
+
+  function clamp(b) {
+    const a = b.slice();
+    a[0] &= 248; a[31] &= 127; a[31] |= 64;
+    return a;
+  }
+
+  async function sign(msg, privKey) {
+    const h = await sha512(privKey);
+    const a = clamp(h.slice(0, 32));
+    const prefix = h.slice(32);
+    const A = encodePoint(mul(fromBytesLE(a), G));
+
+    const rHash = await sha512(concat(prefix, msg));
+    const r = mod(fromBytesLE(rHash), L);
+    const R = encodePoint(mul(r, G));
+
+    const kHash = await sha512(concat(R, A, msg));
+    const k = mod(fromBytesLE(kHash), L);
+    const S = mod(r + k * fromBytesLE(a), L);
+
+    return concat(R, toBytesLE(S));
+  }
+
+  function concat(...arrays) {
+    let len = 0; for (const a of arrays) len += a.length;
+    const out = new Uint8Array(len); let i = 0;
+    for (const a of arrays) { out.set(a, i); i += a.length; }
+    return out;
+  }
+
+  return { sign, getPublicKey };
+})();
+
+// ── UI Logic ──────────────────────────────────────────────────
+
+document.getElementById("purchaseDate").value = new Date().toISOString().split("T")[0];
+
+function hexToBytes(hex) {
+  const b = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) b[i/2] = parseInt(hex.slice(i,i+2), 16);
+  return b;
+}
+
+function bytesToHex(b) {
+  return Array.from(b).map(x => x.toString(16).padStart(2,"0")).join("");
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorBox");
+  el.textContent = "❌ " + msg;
+  el.style.display = "block";
+  document.getElementById("output").style.display = "none";
+}
+
+async function mintLicense() {
+  document.getElementById("errorBox").style.display = "none";
+
+  const privateKeyHex = document.getElementById("privateKey").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const purchaseId = document.getElementById("purchaseId").value.trim();
+  const purchaseDate = document.getElementById("purchaseDate").value;
+
+  if (!privateKeyHex || privateKeyHex.length !== 64) return showError("Private key must be 64 hex chars.");
+  if (!email || !email.includes("@")) return showError("Enter a valid email.");
+  if (!purchaseId) return showError("Enter a purchase ID.");
+  if (!purchaseDate) return showError("Select a purchase date.");
+
+  try {
+    const payload = {
+      email: email.toLowerCase(),
+      purchaseId,
+      purchaseDate,
+      tier: "pro",
+      productId: "literature-review-synthesizer",
+    };
+
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+    const privateKeyBytes = hexToBytes(privateKeyHex);
+    const sigBytes = await ED25519.sign(payloadBytes, privateKeyBytes);
+    const licenseData = { payload, signature: bytesToHex(sigBytes) };
+    const licenseKey = btoa(JSON.stringify(licenseData));
+
+    document.getElementById("licenseKey").value = licenseKey;
+    document.getElementById("emailTemplate").value = buildEmail(email, licenseKey);
+    document.getElementById("output").style.display = "block";
+  } catch(e) {
+    showError(e.message || String(e));
+    console.error(e);
+  }
+}
+
+function buildEmail(email, key) {
+  return `Subject: Your Literature Review Synthesizer Pro License
+
+Hi,
+
+Thank you for your purchase!
+
+Email: ${email}
+License Key:
+${key}
+
+TO ACTIVATE:
+1. Open Obsidian → Settings
+2. Click "Literature Review Synthesizer"
+3. Scroll to "License" section
+4. Enter your email and paste the license key
+5. Click "Activate Pro License"
+
+Best regards`;
+}
+
+function copyField(id) {
+  const el = document.getElementById(id);
+  el.select();
+  document.execCommand("copy");
+  alert("Copied!");
+}
+</script>
+</body>
+</html>
