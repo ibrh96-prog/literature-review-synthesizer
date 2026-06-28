@@ -1,5 +1,5 @@
 import { App, Notice, TFolder } from "obsidian";
-import { LiteratureReviewSettings, FREE_TIER_MONTHLY_LIMIT } from "./settings";
+import { LiteratureReviewSettings, FREE_TIER_LIFETIME_LIMIT } from "./settings";
 import { LLMProvider } from "./llm-provider";
 import { NoteCollector } from "./note-collector";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS, getSystemPrompt, getPromptForMode } from "./prompts";
@@ -28,88 +28,98 @@ export class SynthesisEngine {
   private settings: LiteratureReviewSettings;
   private llmProvider: LLMProvider;
   private noteCollector: NoteCollector;
+  private saveSettings: () => Promise<void>;
 
   constructor(
     app: App,
     settings: LiteratureReviewSettings,
     llmProvider: LLMProvider,
-    noteCollector: NoteCollector
+    noteCollector: NoteCollector,
+    saveSettings: () => Promise<void>
   ) {
     this.app = app;
     this.settings = settings;
     this.llmProvider = llmProvider;
     this.noteCollector = noteCollector;
+    this.saveSettings = saveSettings;
   }
 
   async run(request: SynthesisRequest): Promise<SynthesisResult> {
     // ── 1. Check free tier limit ──────────────────────────────
     if (!this.settings.isProActivated) {
-      this.checkAndResetMonthlyUsage();
-      if (this.settings.monthlyUsageCount >= FREE_TIER_MONTHLY_LIMIT) {
+      if (this.settings.lifetimeUsageCount >= FREE_TIER_LIFETIME_LIMIT) {
         throw new Error(
-          `Free tier limit reached (${FREE_TIER_MONTHLY_LIMIT} syntheses/month). ` +
+          `Free tier limit reached (${FREE_TIER_LIFETIME_LIMIT} syntheses total). ` +
           `Please activate a Pro license to continue.`
         );
       }
+      // Reserve the slot immediately before any await, then persist it.
+      // If the work below fails we refund in the catch block.
+      this.settings.lifetimeUsageCount += 1;
+      await this.saveSettings();
     }
 
-    // ── 2. Collect notes ──────────────────────────────────────
-    new Notice("Collecting notes...");
-    let notes;
+    // ── 2-5. Collect notes, call LLM, write output note ───────
+    try {
+      new Notice("Collecting notes...");
+      let notes;
 
-    if (request.sourceType === "folder" && request.folderPath) {
-      notes = await this.noteCollector.collectFromFolder(request.folderPath);
-    } else if (request.sourceType === "tag" && request.tag) {
-      notes = await this.noteCollector.collectFromTag(request.tag);
-    } else if (request.sourceType === "files" && request.filePaths) {
-      notes = await this.noteCollector.collectFromFiles(request.filePaths);
-    } else {
-      throw new Error("Invalid synthesis request: no source specified.");
+      if (request.sourceType === "folder" && request.folderPath) {
+        notes = await this.noteCollector.collectFromFolder(request.folderPath);
+      } else if (request.sourceType === "tag" && request.tag) {
+        notes = await this.noteCollector.collectFromTag(request.tag);
+      } else if (request.sourceType === "files" && request.filePaths) {
+        notes = await this.noteCollector.collectFromFiles(request.filePaths);
+      } else {
+        throw new Error("Invalid synthesis request: no source specified.");
+      }
+
+      if (notes.length === 0) {
+        throw new Error("No notes found for the selected source. Please check your folder path or tag.");
+      }
+
+      new Notice(`Found ${notes.length} notes. Sending to LLM...`);
+
+      // ── 3. Format notes and build prompt ──────────────────────
+      const formattedNotes = this.noteCollector.formatNotesForLLM(notes);
+      const userPrompt = getPromptForMode(request.mode, formattedNotes, request.userContext);
+      const systemPrompt = getSystemPrompt(this.settings);
+
+      // ── 4. Call LLM ───────────────────────────────────────────
+      const response = await this.llmProvider.sendMessage(
+        [{ role: "user", content: userPrompt }],
+        systemPrompt
+      );
+
+      // ── 5. Save output note ───────────────────────────────────
+      const noteTitle = this.generateNoteTitle(request.mode);
+      const noteContent = this.buildOutputNote(
+        response.content,
+        request,
+        notes.map((n) => n.path),
+        response.model
+      );
+      const notePath = await this.saveOutputNote(noteTitle, noteContent);
+
+      new Notice(`✅ Synthesis complete! Saved to: ${notePath}`);
+
+      return {
+        content: response.content,
+        noteTitle,
+        notePath,
+        sourceCount: notes.length,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+        model: response.model,
+      };
+    } catch (error) {
+      // Refund the reserved slot so the user can try again.
+      if (!this.settings.isProActivated) {
+        this.settings.lifetimeUsageCount -= 1;
+        await this.saveSettings();
+      }
+      throw error;
     }
-
-    if (notes.length === 0) {
-      throw new Error("No notes found for the selected source. Please check your folder path or tag.");
-    }
-
-    new Notice(`Found ${notes.length} notes. Sending to LLM...`);
-
-    // ── 3. Format notes and build prompt ──────────────────────
-    const formattedNotes = this.noteCollector.formatNotesForLLM(notes);
-    const userPrompt = getPromptForMode(request.mode, formattedNotes, request.userContext);
-    const systemPrompt = getSystemPrompt(this.settings);
-
-    // ── 4. Call LLM ───────────────────────────────────────────
-    const response = await this.llmProvider.sendMessage(
-      [{ role: "user", content: userPrompt }],
-      systemPrompt
-    );
-
-    // ── 5. Save output note ───────────────────────────────────
-    const noteTitle = this.generateNoteTitle(request.mode);
-    const noteContent = this.buildOutputNote(
-      response.content,
-      request,
-      notes.map((n) => n.path),
-      response.model
-    );
-    const notePath = await this.saveOutputNote(noteTitle, noteContent);
-
-    // ── 6. Update usage count (free tier) ─────────────────────
-    if (!this.settings.isProActivated) {
-      this.settings.monthlyUsageCount += 1;
-    }
-
-    new Notice(`✅ Synthesis complete! Saved to: ${notePath}`);
-
-    return {
-      content: response.content,
-      noteTitle,
-      notePath,
-      sourceCount: notes.length,
-      inputTokens: response.inputTokens,
-      outputTokens: response.outputTokens,
-      model: response.model,
-    };
   }
 
   private generateNoteTitle(mode: SynthesisMode): string {
@@ -189,13 +199,4 @@ ${sourceLinks}
     return filePath;
   }
 
-  private checkAndResetMonthlyUsage(): void {
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${now.getMonth()}`;
-
-    if (this.settings.monthlyUsageResetDate !== currentMonth) {
-      this.settings.monthlyUsageCount = 0;
-      this.settings.monthlyUsageResetDate = currentMonth;
-    }
-  }
 }

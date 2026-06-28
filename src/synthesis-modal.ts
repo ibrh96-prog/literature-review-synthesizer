@@ -3,6 +3,7 @@ import LiteratureReviewSynthesizer from "./main";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS } from "./prompts";
 import { SynthesisEngine } from "./synthesis-engine";
 import { GUMROAD_URL } from "./license-validator";
+import { FREE_TIER_LIFETIME_LIMIT } from "./settings";
 
 export class SynthesisModal extends Modal {
   plugin: LiteratureReviewSynthesizer;
@@ -114,16 +115,16 @@ export class SynthesisModal extends Modal {
       const remaining =
         Math.max(
           0,
-          3 - this.plugin.settings.monthlyUsageCount
+          FREE_TIER_LIFETIME_LIMIT - this.plugin.settings.lifetimeUsageCount
         );
       contentEl.createEl("p", {
-        text: `Free tier: ${remaining} synthesis remaining this month.`,
+        text: `Free tier: ${remaining} synthesis remaining (lifetime limit).`,
         cls: "setting-item-description",
       });
 
       new Setting(contentEl)
         .setName("Upgrade to Pro")
-        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month).")
         .addButton((button) => {
           button
             .setButtonText("Get Pro license")
@@ -145,6 +146,10 @@ export class SynthesisModal extends Modal {
   }
 
   async runSynthesis(btn: ButtonComponent) {
+    if (this.plugin.isSynthesisInProgress) {
+      new Notice("⚠️ A synthesis is already running.");
+      return;
+    }
     if (this.isRunning) return;
 
     // Validate inputs
@@ -164,6 +169,7 @@ export class SynthesisModal extends Modal {
     }
 
     this.isRunning = true;
+    this.plugin.isSynthesisInProgress = true;
     btn.setButtonText("Running...").setDisabled(true);
 
     try {
@@ -171,7 +177,8 @@ export class SynthesisModal extends Modal {
         this.app,
         this.plugin.settings,
         this.plugin.llmProvider,
-        this.plugin.noteCollector
+        this.plugin.noteCollector,
+        () => this.plugin.saveSettings()
       );
 
       const result = await engine.run({
@@ -207,6 +214,7 @@ export class SynthesisModal extends Modal {
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {
       this.isRunning = false;
+      this.plugin.isSynthesisInProgress = false;
     }
   }
 
@@ -225,7 +233,7 @@ class ProUpgradeModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl("h2", { text: "Free limit reached" });
     contentEl.createEl("p", {
-      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).",
+      text: "You've used all 3 of your free syntheses. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month).",
     });
     const buttonRow = contentEl.createDiv();
     const proButton = buttonRow.createEl("button", { text: "Get Pro license" });

@@ -34,8 +34,7 @@ export interface LiteratureReviewSettings {
   isProActivated: boolean;
 
   // Usage tracking (free tier)
-  monthlyUsageCount: number;
-  monthlyUsageResetDate: string;
+  lifetimeUsageCount: number;
 }
 
 export const DEFAULT_SETTINGS: LiteratureReviewSettings = {
@@ -57,8 +56,7 @@ export const DEFAULT_SETTINGS: LiteratureReviewSettings = {
   licenseKey: "",
   isProActivated: false,
 
-  monthlyUsageCount: 0,
-  monthlyUsageResetDate: "",
+  lifetimeUsageCount: 0,
 };
 
-export const FREE_TIER_MONTHLY_LIMIT = 3;
+export const FREE_TIER_LIFETIME_LIMIT = 3;

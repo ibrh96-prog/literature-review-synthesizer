@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
-import { FREE_TIER_MONTHLY_LIMIT, OpenAIModel, AnthropicModel } from "./settings";
+import { FREE_TIER_LIFETIME_LIMIT, OpenAIModel, AnthropicModel } from "./settings";
 import { validateLicense, GUMROAD_URL } from "./license-validator";
 
 export class SettingsTab extends PluginSettingTab {
@@ -219,15 +219,15 @@ export class SettingsTab extends PluginSettingTab {
     } else {
       const remaining = Math.max(
         0,
-        FREE_TIER_MONTHLY_LIMIT - this.plugin.settings.monthlyUsageCount
+        FREE_TIER_LIFETIME_LIMIT - this.plugin.settings.lifetimeUsageCount
       );
       containerEl.createEl("p", {
-        text: `Free tier: ${this.plugin.settings.monthlyUsageCount} / ${FREE_TIER_MONTHLY_LIMIT} syntheses used this month (${remaining} remaining).`,
+        text: `Free tier: ${this.plugin.settings.lifetimeUsageCount} / ${FREE_TIER_LIFETIME_LIMIT} syntheses used (lifetime). ${remaining} remaining.`,
       });
 
       new Setting(containerEl)
         .setName("Upgrade to Pro")
-        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month).")
         .addButton((button) => {
           button
             .setButtonText("Get Pro license")

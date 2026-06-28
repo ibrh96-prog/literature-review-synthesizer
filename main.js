@@ -2278,10 +2278,9 @@ var DEFAULT_SETTINGS = {
   licenseEmail: "",
   licenseKey: "",
   isProActivated: false,
-  monthlyUsageCount: 0,
-  monthlyUsageResetDate: ""
+  lifetimeUsageCount: 0
 };
-var FREE_TIER_MONTHLY_LIMIT = 3;
+var FREE_TIER_LIFETIME_LIMIT = 3;
 
 // src/settings-tab.ts
 var import_obsidian = require("obsidian");
@@ -2467,12 +2466,12 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
     } else {
       const remaining = Math.max(
         0,
-        FREE_TIER_MONTHLY_LIMIT - this.plugin.settings.monthlyUsageCount
+        FREE_TIER_LIFETIME_LIMIT - this.plugin.settings.lifetimeUsageCount
       );
       containerEl.createEl("p", {
-        text: `Free tier: ${this.plugin.settings.monthlyUsageCount} / ${FREE_TIER_MONTHLY_LIMIT} syntheses used this month (${remaining} remaining).`
+        text: `Free tier: ${this.plugin.settings.lifetimeUsageCount} / ${FREE_TIER_LIFETIME_LIMIT} syntheses used (lifetime). ${remaining} remaining.`
       });
-      new import_obsidian.Setting(containerEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
+      new import_obsidian.Setting(containerEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
         button.setButtonText("Get Pro license").onClick(() => {
           window.open(GUMROAD_URL, "_blank");
         });
@@ -2888,64 +2887,71 @@ function getPromptForMode(mode, formattedNotes, userContext) {
 // src/synthesis-engine.ts
 var import_obsidian5 = require("obsidian");
 var SynthesisEngine = class {
-  constructor(app, settings, llmProvider, noteCollector) {
+  constructor(app, settings, llmProvider, noteCollector, saveSettings) {
     this.app = app;
     this.settings = settings;
     this.llmProvider = llmProvider;
     this.noteCollector = noteCollector;
+    this.saveSettings = saveSettings;
   }
   async run(request) {
     if (!this.settings.isProActivated) {
-      this.checkAndResetMonthlyUsage();
-      if (this.settings.monthlyUsageCount >= FREE_TIER_MONTHLY_LIMIT) {
+      if (this.settings.lifetimeUsageCount >= FREE_TIER_LIFETIME_LIMIT) {
         throw new Error(
-          `Free tier limit reached (${FREE_TIER_MONTHLY_LIMIT} syntheses/month). Please activate a Pro license to continue.`
+          `Free tier limit reached (${FREE_TIER_LIFETIME_LIMIT} syntheses total). Please activate a Pro license to continue.`
         );
       }
+      this.settings.lifetimeUsageCount += 1;
+      await this.saveSettings();
     }
-    new import_obsidian5.Notice("Collecting notes...");
-    let notes;
-    if (request.sourceType === "folder" && request.folderPath) {
-      notes = await this.noteCollector.collectFromFolder(request.folderPath);
-    } else if (request.sourceType === "tag" && request.tag) {
-      notes = await this.noteCollector.collectFromTag(request.tag);
-    } else if (request.sourceType === "files" && request.filePaths) {
-      notes = await this.noteCollector.collectFromFiles(request.filePaths);
-    } else {
-      throw new Error("Invalid synthesis request: no source specified.");
+    try {
+      new import_obsidian5.Notice("Collecting notes...");
+      let notes;
+      if (request.sourceType === "folder" && request.folderPath) {
+        notes = await this.noteCollector.collectFromFolder(request.folderPath);
+      } else if (request.sourceType === "tag" && request.tag) {
+        notes = await this.noteCollector.collectFromTag(request.tag);
+      } else if (request.sourceType === "files" && request.filePaths) {
+        notes = await this.noteCollector.collectFromFiles(request.filePaths);
+      } else {
+        throw new Error("Invalid synthesis request: no source specified.");
+      }
+      if (notes.length === 0) {
+        throw new Error("No notes found for the selected source. Please check your folder path or tag.");
+      }
+      new import_obsidian5.Notice(`Found ${notes.length} notes. Sending to LLM...`);
+      const formattedNotes = this.noteCollector.formatNotesForLLM(notes);
+      const userPrompt = getPromptForMode(request.mode, formattedNotes, request.userContext);
+      const systemPrompt = getSystemPrompt(this.settings);
+      const response = await this.llmProvider.sendMessage(
+        [{ role: "user", content: userPrompt }],
+        systemPrompt
+      );
+      const noteTitle = this.generateNoteTitle(request.mode);
+      const noteContent = this.buildOutputNote(
+        response.content,
+        request,
+        notes.map((n) => n.path),
+        response.model
+      );
+      const notePath = await this.saveOutputNote(noteTitle, noteContent);
+      new import_obsidian5.Notice(`\u2705 Synthesis complete! Saved to: ${notePath}`);
+      return {
+        content: response.content,
+        noteTitle,
+        notePath,
+        sourceCount: notes.length,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+        model: response.model
+      };
+    } catch (error) {
+      if (!this.settings.isProActivated) {
+        this.settings.lifetimeUsageCount -= 1;
+        await this.saveSettings();
+      }
+      throw error;
     }
-    if (notes.length === 0) {
-      throw new Error("No notes found for the selected source. Please check your folder path or tag.");
-    }
-    new import_obsidian5.Notice(`Found ${notes.length} notes. Sending to LLM...`);
-    const formattedNotes = this.noteCollector.formatNotesForLLM(notes);
-    const userPrompt = getPromptForMode(request.mode, formattedNotes, request.userContext);
-    const systemPrompt = getSystemPrompt(this.settings);
-    const response = await this.llmProvider.sendMessage(
-      [{ role: "user", content: userPrompt }],
-      systemPrompt
-    );
-    const noteTitle = this.generateNoteTitle(request.mode);
-    const noteContent = this.buildOutputNote(
-      response.content,
-      request,
-      notes.map((n) => n.path),
-      response.model
-    );
-    const notePath = await this.saveOutputNote(noteTitle, noteContent);
-    if (!this.settings.isProActivated) {
-      this.settings.monthlyUsageCount += 1;
-    }
-    new import_obsidian5.Notice(`\u2705 Synthesis complete! Saved to: ${notePath}`);
-    return {
-      content: response.content,
-      noteTitle,
-      notePath,
-      sourceCount: notes.length,
-      inputTokens: response.inputTokens,
-      outputTokens: response.outputTokens,
-      model: response.model
-    };
   }
   generateNoteTitle(mode) {
     const label = SYNTHESIS_MODE_LABELS[mode];
@@ -3006,14 +3012,6 @@ ${sourceLinks}
     const filePath = `${folder}/${fileName}`;
     await this.app.vault.create(filePath, content);
     return filePath;
-  }
-  checkAndResetMonthlyUsage() {
-    const now = /* @__PURE__ */ new Date();
-    const currentMonth = `${now.getFullYear()}-${now.getMonth()}`;
-    if (this.settings.monthlyUsageResetDate !== currentMonth) {
-      this.settings.monthlyUsageCount = 0;
-      this.settings.monthlyUsageResetDate = currentMonth;
-    }
   }
 };
 
@@ -3080,13 +3078,13 @@ var SynthesisModal = class extends import_obsidian6.Modal {
     if (!this.plugin.settings.isProActivated) {
       const remaining = Math.max(
         0,
-        3 - this.plugin.settings.monthlyUsageCount
+        FREE_TIER_LIFETIME_LIMIT - this.plugin.settings.lifetimeUsageCount
       );
       contentEl.createEl("p", {
-        text: `Free tier: ${remaining} synthesis remaining this month.`,
+        text: `Free tier: ${remaining} synthesis remaining (lifetime limit).`,
         cls: "setting-item-description"
       });
-      new import_obsidian6.Setting(contentEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
+      new import_obsidian6.Setting(contentEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
         button.setButtonText("Get Pro license").onClick(() => {
           window.open(GUMROAD_URL, "_blank");
         });
@@ -3099,6 +3097,10 @@ var SynthesisModal = class extends import_obsidian6.Modal {
     });
   }
   async runSynthesis(btn) {
+    if (this.plugin.isSynthesisInProgress) {
+      new import_obsidian6.Notice("\u26A0\uFE0F A synthesis is already running.");
+      return;
+    }
     if (this.isRunning) return;
     if (!this.plugin.llmProvider) {
       new import_obsidian6.Notice("\u274C No API key configured. Please add your API key in Settings.");
@@ -3113,13 +3115,15 @@ var SynthesisModal = class extends import_obsidian6.Modal {
       return;
     }
     this.isRunning = true;
+    this.plugin.isSynthesisInProgress = true;
     btn.setButtonText("Running...").setDisabled(true);
     try {
       const engine = new SynthesisEngine(
         this.app,
         this.plugin.settings,
         this.plugin.llmProvider,
-        this.plugin.noteCollector
+        this.plugin.noteCollector,
+        () => this.plugin.saveSettings()
       );
       const result = await engine.run({
         mode: this.selectedMode,
@@ -3148,6 +3152,7 @@ var SynthesisModal = class extends import_obsidian6.Modal {
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {
       this.isRunning = false;
+      this.plugin.isSynthesisInProgress = false;
     }
   }
   onClose() {
@@ -3163,7 +3168,7 @@ var ProUpgradeModal = class extends import_obsidian6.Modal {
     const { contentEl } = this;
     contentEl.createEl("h2", { text: "Free limit reached" });
     contentEl.createEl("p", {
-      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code PRODUCTHUNT (valid 1 month)."
+      text: "You've used all 3 of your free syntheses. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Lock in early access now with code PRODUCTHUNT (valid 1 month)."
     });
     const buttonRow = contentEl.createDiv();
     const proButton = buttonRow.createEl("button", { text: "Get Pro license" });
@@ -3185,6 +3190,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
   constructor() {
     super(...arguments);
     this.llmProvider = null;
+    this.isSynthesisInProgress = false;
   }
   async onload() {
     await this.loadSettings();
@@ -3201,6 +3207,10 @@ var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
           );
           return;
         }
+        if (this.isSynthesisInProgress) {
+          new import_obsidian7.Notice("\u26A0\uFE0F A synthesis is already running.");
+          return;
+        }
         new SynthesisModal(this.app, this).open();
       }
     });
@@ -3209,6 +3219,10 @@ var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
         new import_obsidian7.Notice(
           "\u26A0\uFE0F Please configure your API key in Settings before running a synthesis."
         );
+        return;
+      }
+      if (this.isSynthesisInProgress) {
+        new import_obsidian7.Notice("\u26A0\uFE0F A synthesis is already running.");
         return;
       }
       new SynthesisModal(this.app, this).open();

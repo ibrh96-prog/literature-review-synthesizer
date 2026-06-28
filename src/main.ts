@@ -14,6 +14,7 @@ export default class LiteratureReviewSynthesizer extends Plugin {
   settings: LiteratureReviewSettings;
   llmProvider: LLMProvider | null = null;
   noteCollector: NoteCollector;
+  isSynthesisInProgress: boolean = false;
 
   async onload() {
     await this.loadSettings();
@@ -33,6 +34,10 @@ export default class LiteratureReviewSynthesizer extends Plugin {
           );
           return;
         }
+        if (this.isSynthesisInProgress) {
+          new Notice("⚠️ A synthesis is already running.");
+          return;
+        }
         new SynthesisModal(this.app, this).open();
       },
     });
@@ -42,6 +47,10 @@ export default class LiteratureReviewSynthesizer extends Plugin {
         new Notice(
           "⚠️ Please configure your API key in Settings before running a synthesis."
         );
+        return;
+      }
+      if (this.isSynthesisInProgress) {
+        new Notice("⚠️ A synthesis is already running.");
         return;
       }
       new SynthesisModal(this.app, this).open();
