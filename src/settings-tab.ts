@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
 import { FREE_TIER_MONTHLY_LIMIT } from "./settings";
-import { validateLicense } from "./license-validator";
+import { validateLicense, GUMROAD_URL } from "./license-validator";
 
 export class SettingsTab extends PluginSettingTab {
   plugin: LiteratureReviewSynthesizer;
@@ -224,6 +224,17 @@ export class SettingsTab extends PluginSettingTab {
       containerEl.createEl("p", {
         text: `Free tier: ${this.plugin.settings.monthlyUsageCount} / ${FREE_TIER_MONTHLY_LIMIT} syntheses used this month (${remaining} remaining).`,
       });
+
+      new Setting(containerEl)
+        .setName("Upgrade to Pro")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).")
+        .addButton((button) => {
+          button
+            .setButtonText("Get Pro license")
+            .onClick(() => {
+              window.open(GUMROAD_URL, "_blank");
+            });
+        });
 
       new Setting(containerEl)
         .setName("License Email")

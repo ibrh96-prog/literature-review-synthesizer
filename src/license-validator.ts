@@ -3,6 +3,8 @@ import nacl from "tweetnacl";
 // ─── PUBLIC KEY ───────────────────────────────────────────────────
 // tweetnacl public key — derived from seed d91511a76533b960b3a84f3fa804cd11eddb552cd47e401d35b94ebf8b3a0991
 const PUBLIC_KEY_HEX = "3d784076b39d7444be604da1d4eb07de544c25b4ce34d4a0b87678f49768377f";
+// ─── GUMROAD ──────────────────────────────────────────────────────
+export const GUMROAD_URL = "https://ibrh96.gumroad.com/l/pkpmfj";
 // ─── REVOKED LICENSES ─────────────────────────────────────────────
 const REVOKED_LICENSES: string[] = [];
 

@@ -2,6 +2,7 @@ import { App, Modal, Setting, Notice, TFolder } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS } from "./prompts";
 import { SynthesisEngine } from "./synthesis-engine";
+import { GUMROAD_URL } from "./license-validator";
 
 export class SynthesisModal extends Modal {
   plugin: LiteratureReviewSynthesizer;
@@ -119,6 +120,17 @@ export class SynthesisModal extends Modal {
         text: `Free tier: ${remaining} synthesis remaining this month.`,
         cls: "setting-item-description",
       });
+
+      new Setting(contentEl)
+        .setName("Upgrade to Pro")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).")
+        .addButton((button) => {
+          button
+            .setButtonText("Get Pro license")
+            .onClick(() => {
+              window.open(GUMROAD_URL, "_blank");
+            });
+        });
     }
 
     // ── RUN BUTTON ────────────────────────────────────────────
@@ -186,7 +198,11 @@ export class SynthesisModal extends Modal {
         ` (${result.inputTokens + result.outputTokens} tokens used)`
       );
     } catch (error) {
-      new Notice(`❌ Synthesis failed: ${error.message}`);
+      if (error.message && error.message.includes("Free tier limit reached")) {
+        new ProUpgradeModal(this.app).open();
+      } else {
+        new Notice(`❌ Synthesis failed: ${error.message}`);
+      }
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {
       this.isRunning = false;
@@ -196,5 +212,32 @@ export class SynthesisModal extends Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
+  }
+}
+
+class ProUpgradeModal extends Modal {
+  constructor(app: App) {
+    super(app);
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: "Free limit reached" });
+    contentEl.createEl("p", {
+      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).",
+    });
+    const buttonRow = contentEl.createDiv();
+    const proButton = buttonRow.createEl("button", { text: "Get Pro license" });
+    proButton.addEventListener("click", () => {
+      window.open(GUMROAD_URL, "_blank");
+    });
+    const closeButton = buttonRow.createEl("button", { text: "Got it" });
+    closeButton.addEventListener("click", () => {
+      this.close();
+    });
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }

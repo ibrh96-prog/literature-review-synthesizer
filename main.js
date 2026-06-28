@@ -2289,6 +2289,7 @@ var import_obsidian = require("obsidian");
 // src/license-validator.ts
 var import_tweetnacl = __toESM(require_nacl_fast());
 var PUBLIC_KEY_HEX = "3d784076b39d7444be604da1d4eb07de544c25b4ce34d4a0b87678f49768377f";
+var GUMROAD_URL = "https://ibrh96.gumroad.com/l/pkpmfj";
 var REVOKED_LICENSES = [];
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2);
@@ -2470,6 +2471,11 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
       );
       containerEl.createEl("p", {
         text: `Free tier: ${this.plugin.settings.monthlyUsageCount} / ${FREE_TIER_MONTHLY_LIMIT} syntheses used this month (${remaining} remaining).`
+      });
+      new import_obsidian.Setting(containerEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code gcw63tz (valid 1 month).").addButton((button) => {
+        button.setButtonText("Get Pro license").onClick(() => {
+          window.open(GUMROAD_URL, "_blank");
+        });
       });
       new import_obsidian.Setting(containerEl).setName("License Email").setDesc("The email address used when purchasing.").addText(
         (text) => text.setPlaceholder("you@example.com").setValue(this.plugin.settings.licenseEmail).onChange(async (value) => {
@@ -3061,6 +3067,11 @@ var SynthesisModal = class extends import_obsidian4.Modal {
         text: `Free tier: ${remaining} synthesis remaining this month.`,
         cls: "setting-item-description"
       });
+      new import_obsidian4.Setting(contentEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code gcw63tz (valid 1 month).").addButton((button) => {
+        button.setButtonText("Get Pro license").onClick(() => {
+          window.open(GUMROAD_URL, "_blank");
+        });
+      });
     }
     const buttonSetting = new import_obsidian4.Setting(contentEl).addButton((btn) => {
       btn.setButtonText("Run Synthesis").setCta().onClick(async () => {
@@ -3109,7 +3120,11 @@ var SynthesisModal = class extends import_obsidian4.Modal {
         `\u2705 Done! Synthesized ${result.sourceCount} notes \u2192 ${result.noteTitle} (${result.inputTokens + result.outputTokens} tokens used)`
       );
     } catch (error) {
-      new import_obsidian4.Notice(`\u274C Synthesis failed: ${error.message}`);
+      if (error.message && error.message.includes("Free tier limit reached")) {
+        new ProUpgradeModal(this.app).open();
+      } else {
+        new import_obsidian4.Notice(`\u274C Synthesis failed: ${error.message}`);
+      }
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {
       this.isRunning = false;
@@ -3118,6 +3133,30 @@ var SynthesisModal = class extends import_obsidian4.Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
+  }
+};
+var ProUpgradeModal = class extends import_obsidian4.Modal {
+  constructor(app) {
+    super(app);
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: "Free limit reached" });
+    contentEl.createEl("p", {
+      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code gcw63tz (valid 1 month)."
+    });
+    const buttonRow = contentEl.createDiv();
+    const proButton = buttonRow.createEl("button", { text: "Get Pro license" });
+    proButton.addEventListener("click", () => {
+      window.open(GUMROAD_URL, "_blank");
+    });
+    const closeButton = buttonRow.createEl("button", { text: "Got it" });
+    closeButton.addEventListener("click", () => {
+      this.close();
+    });
+  }
+  onClose() {
+    this.contentEl.empty();
   }
 };
 
