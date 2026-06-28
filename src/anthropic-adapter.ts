@@ -1,3 +1,4 @@
+import { requestUrl } from "obsidian";
 import { LLMProvider, LLMMessage, LLMResponse } from "./llm-provider";
 
 export class AnthropicAdapter implements LLMProvider {
@@ -30,7 +31,8 @@ export class AnthropicAdapter implements LLMProvider {
         content: m.content,
       }));
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await requestUrl({
+      url: "https://api.anthropic.com/v1/messages",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,16 +46,21 @@ export class AnthropicAdapter implements LLMProvider {
         system: systemPrompt,
         messages: anthropicMessages,
       }),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `Anthropic API error: ${error.error?.message || response.statusText}`
-      );
+    if (response.status >= 400) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const error = response.json;
+        message = error?.error?.message || message;
+      } catch {
+        message = response.text?.slice(0, 200) || message;
+      }
+      throw new Error(`Anthropic API error: ${message}`);
     }
 
-    const data = await response.json();
+    const data = response.json;
 
     return {
       content: data.content[0].text,
@@ -65,7 +72,8 @@ export class AnthropicAdapter implements LLMProvider {
 
   async validateApiKey(): Promise<boolean> {
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await requestUrl({
+        url: "https://api.anthropic.com/v1/messages",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,8 +85,9 @@ export class AnthropicAdapter implements LLMProvider {
           max_tokens: 10,
           messages: [{ role: "user", content: "Hi" }],
         }),
+        throw: false,
       });
-      return response.ok || response.status === 400;
+      return response.status < 400 || response.status === 400;
     } catch {
       return false;
     }

@@ -1,3 +1,4 @@
+import { requestUrl } from "obsidian";
 import { LLMProvider, LLMMessage, LLMResponse } from "./llm-provider";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
@@ -35,7 +36,8 @@ export class OpenAIAdapter implements LLMProvider {
       ...messages,
     ];
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await requestUrl({
+      url: `${this.baseUrl}/chat/completions`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,16 +49,21 @@ export class OpenAIAdapter implements LLMProvider {
         temperature: this.temperature,
         max_tokens: this.maxTokens,
       }),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API error: ${error.error?.message || response.statusText}`
-      );
+    if (response.status >= 400) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const error = response.json;
+        message = error?.error?.message || message;
+      } catch {
+        message = response.text?.slice(0, 200) || message;
+      }
+      throw new Error(`API error: ${message}`);
     }
 
-    const data = await response.json();
+    const data = response.json;
     const choice = data.choices[0];
 
     return {
@@ -69,12 +76,15 @@ export class OpenAIAdapter implements LLMProvider {
 
   async validateApiKey(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/models`, {
+      const response = await requestUrl({
+        url: `${this.baseUrl}/models`,
+        method: "GET",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
         },
+        throw: false,
       });
-      return response.ok;
+      return response.status < 400;
     } catch {
       return false;
     }

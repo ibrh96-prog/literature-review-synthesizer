@@ -2259,7 +2259,7 @@ __export(main_exports, {
   default: () => LiteratureReviewSynthesizer
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // src/settings.ts
 var DEFAULT_SETTINGS = {
@@ -2516,6 +2516,7 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
 };
 
 // src/openai-adapter.ts
+var import_obsidian2 = require("obsidian");
 var DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 var OpenAIAdapter = class {
   constructor(apiKey, model, temperature, maxTokens, baseUrl) {
@@ -2527,12 +2528,13 @@ var OpenAIAdapter = class {
     this.baseUrl = baseUrl && baseUrl.trim() !== "" ? baseUrl.trim().replace(/\/$/, "") : DEFAULT_OPENAI_BASE_URL;
   }
   async sendMessage(messages, systemPrompt) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     const allMessages = [
       { role: "system", content: systemPrompt },
       ...messages
     ];
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await (0, import_obsidian2.requestUrl)({
+      url: `${this.baseUrl}/chat/completions`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2543,31 +2545,39 @@ var OpenAIAdapter = class {
         messages: allMessages,
         temperature: this.temperature,
         max_tokens: this.maxTokens
-      })
+      }),
+      throw: false
     });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API error: ${((_a = error.error) == null ? void 0 : _a.message) || response.statusText}`
-      );
+    if (response.status >= 400) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const error = response.json;
+        message = ((_a = error == null ? void 0 : error.error) == null ? void 0 : _a.message) || message;
+      } catch (e) {
+        message = ((_b = response.text) == null ? void 0 : _b.slice(0, 200)) || message;
+      }
+      throw new Error(`API error: ${message}`);
     }
-    const data = await response.json();
+    const data = response.json;
     const choice = data.choices[0];
     return {
       content: choice.message.content,
-      inputTokens: (_c = (_b = data.usage) == null ? void 0 : _b.prompt_tokens) != null ? _c : 0,
-      outputTokens: (_e = (_d = data.usage) == null ? void 0 : _d.completion_tokens) != null ? _e : 0,
-      model: (_f = data.model) != null ? _f : this.model
+      inputTokens: (_d = (_c = data.usage) == null ? void 0 : _c.prompt_tokens) != null ? _d : 0,
+      outputTokens: (_f = (_e = data.usage) == null ? void 0 : _e.completion_tokens) != null ? _f : 0,
+      model: (_g = data.model) != null ? _g : this.model
     };
   }
   async validateApiKey() {
     try {
-      const response = await fetch(`${this.baseUrl}/models`, {
+      const response = await (0, import_obsidian2.requestUrl)({
+        url: `${this.baseUrl}/models`,
+        method: "GET",
         headers: {
           Authorization: `Bearer ${this.apiKey}`
-        }
+        },
+        throw: false
       });
-      return response.ok;
+      return response.status < 400;
     } catch (e) {
       return false;
     }
@@ -2575,6 +2585,7 @@ var OpenAIAdapter = class {
 };
 
 // src/anthropic-adapter.ts
+var import_obsidian3 = require("obsidian");
 var AnthropicAdapter = class {
   constructor(apiKey, model, temperature, maxTokens) {
     this.name = "Anthropic";
@@ -2584,12 +2595,13 @@ var AnthropicAdapter = class {
     this.maxTokens = maxTokens;
   }
   async sendMessage(messages, systemPrompt) {
-    var _a;
+    var _a, _b;
     const anthropicMessages = messages.filter((m) => m.role !== "system").map((m) => ({
       role: m.role,
       content: m.content
     }));
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await (0, import_obsidian3.requestUrl)({
+      url: "https://api.anthropic.com/v1/messages",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2602,15 +2614,20 @@ var AnthropicAdapter = class {
         temperature: this.temperature,
         system: systemPrompt,
         messages: anthropicMessages
-      })
+      }),
+      throw: false
     });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `Anthropic API error: ${((_a = error.error) == null ? void 0 : _a.message) || response.statusText}`
-      );
+    if (response.status >= 400) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const error = response.json;
+        message = ((_a = error == null ? void 0 : error.error) == null ? void 0 : _a.message) || message;
+      } catch (e) {
+        message = ((_b = response.text) == null ? void 0 : _b.slice(0, 200)) || message;
+      }
+      throw new Error(`Anthropic API error: ${message}`);
     }
-    const data = await response.json();
+    const data = response.json;
     return {
       content: data.content[0].text,
       inputTokens: data.usage.input_tokens,
@@ -2620,7 +2637,8 @@ var AnthropicAdapter = class {
   }
   async validateApiKey() {
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await (0, import_obsidian3.requestUrl)({
+        url: "https://api.anthropic.com/v1/messages",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2631,9 +2649,10 @@ var AnthropicAdapter = class {
           model: this.model,
           max_tokens: 10,
           messages: [{ role: "user", content: "Hi" }]
-        })
+        }),
+        throw: false
       });
-      return response.ok || response.status === 400;
+      return response.status < 400 || response.status === 400;
     } catch (e) {
       return false;
     }
@@ -2641,14 +2660,14 @@ var AnthropicAdapter = class {
 };
 
 // src/note-collector.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var NoteCollector = class {
   constructor(app) {
     this.app = app;
   }
   async collectFromFolder(folderPath) {
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
-    if (!folder || !(folder instanceof import_obsidian2.TFolder)) {
+    if (!folder || !(folder instanceof import_obsidian4.TFolder)) {
       throw new Error(`Folder not found: ${folderPath}`);
     }
     const notes = [];
@@ -2677,7 +2696,7 @@ var NoteCollector = class {
     const notes = [];
     for (const path of filePaths) {
       const file = this.app.vault.getAbstractFileByPath(path);
-      if (file instanceof import_obsidian2.TFile && file.extension === "md") {
+      if (file instanceof import_obsidian4.TFile && file.extension === "md") {
         const note = await this.readNote(file);
         notes.push(note);
       }
@@ -2698,9 +2717,9 @@ var NoteCollector = class {
   getMarkdownFilesInFolder(folder) {
     const files = [];
     for (const child of folder.children) {
-      if (child instanceof import_obsidian2.TFile && child.extension === "md") {
+      if (child instanceof import_obsidian4.TFile && child.extension === "md") {
         files.push(child);
-      } else if (child instanceof import_obsidian2.TFolder) {
+      } else if (child instanceof import_obsidian4.TFolder) {
         files.push(...this.getMarkdownFilesInFolder(child));
       }
     }
@@ -2737,7 +2756,7 @@ ${note.content}
 };
 
 // src/synthesis-modal.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/prompts.ts
 var SYNTHESIS_MODE_LABELS = {
@@ -2867,7 +2886,7 @@ function getPromptForMode(mode, formattedNotes, userContext) {
 }
 
 // src/synthesis-engine.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var SynthesisEngine = class {
   constructor(app, settings, llmProvider, noteCollector) {
     this.app = app;
@@ -2884,7 +2903,7 @@ var SynthesisEngine = class {
         );
       }
     }
-    new import_obsidian3.Notice("Collecting notes...");
+    new import_obsidian5.Notice("Collecting notes...");
     let notes;
     if (request.sourceType === "folder" && request.folderPath) {
       notes = await this.noteCollector.collectFromFolder(request.folderPath);
@@ -2898,7 +2917,7 @@ var SynthesisEngine = class {
     if (notes.length === 0) {
       throw new Error("No notes found for the selected source. Please check your folder path or tag.");
     }
-    new import_obsidian3.Notice(`Found ${notes.length} notes. Sending to LLM...`);
+    new import_obsidian5.Notice(`Found ${notes.length} notes. Sending to LLM...`);
     const formattedNotes = this.noteCollector.formatNotesForLLM(notes);
     const userPrompt = getPromptForMode(request.mode, formattedNotes, request.userContext);
     const systemPrompt = getSystemPrompt(this.settings);
@@ -2917,7 +2936,7 @@ var SynthesisEngine = class {
     if (!this.settings.isProActivated) {
       this.settings.monthlyUsageCount += 1;
     }
-    new import_obsidian3.Notice(`\u2705 Synthesis complete! Saved to: ${notePath}`);
+    new import_obsidian5.Notice(`\u2705 Synthesis complete! Saved to: ${notePath}`);
     return {
       content: response.content,
       noteTitle,
@@ -2999,7 +3018,7 @@ ${sourceLinks}
 };
 
 // src/synthesis-modal.ts
-var SynthesisModal = class extends import_obsidian4.Modal {
+var SynthesisModal = class extends import_obsidian6.Modal {
   constructor(app, plugin) {
     super(app);
     this.selectedMode = "thematic";
@@ -3014,27 +3033,27 @@ var SynthesisModal = class extends import_obsidian4.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h2", { text: "Literature Review Synthesizer" });
-    new import_obsidian4.Setting(contentEl).setName("Source Type").setDesc("How do you want to select your notes?").addDropdown(
+    new import_obsidian6.Setting(contentEl).setName("Source Type").setDesc("How do you want to select your notes?").addDropdown(
       (drop) => drop.addOption("folder", "By Folder").addOption("tag", "By Tag").setValue(this.sourceType).onChange((value) => {
         this.sourceType = value;
         this.onOpen();
       })
     );
     if (this.sourceType === "folder") {
-      new import_obsidian4.Setting(contentEl).setName("Folder Path").setDesc("Enter the vault folder path containing your reading notes.").addText(
+      new import_obsidian6.Setting(contentEl).setName("Folder Path").setDesc("Enter the vault folder path containing your reading notes.").addText(
         (text) => text.setPlaceholder("e.g. Reading Notes/Education").setValue(this.folderPath).onChange((value) => {
           this.folderPath = value.trim();
         })
       );
     }
     if (this.sourceType === "tag") {
-      new import_obsidian4.Setting(contentEl).setName("Tag").setDesc("Enter a tag to collect all notes with that tag.").addText(
+      new import_obsidian6.Setting(contentEl).setName("Tag").setDesc("Enter a tag to collect all notes with that tag.").addText(
         (text) => text.setPlaceholder("e.g. education-research").setValue(this.tag).onChange((value) => {
           this.tag = value.trim().replace(/^#/, "");
         })
       );
     }
-    new import_obsidian4.Setting(contentEl).setName("Synthesis Mode").setDesc("Choose the type of synthesis to generate.").addDropdown((drop) => {
+    new import_obsidian6.Setting(contentEl).setName("Synthesis Mode").setDesc("Choose the type of synthesis to generate.").addDropdown((drop) => {
       drop.addOption("thematic", SYNTHESIS_MODE_LABELS["thematic"]);
       if (this.plugin.settings.isProActivated) {
         drop.addOption("methodological", SYNTHESIS_MODE_LABELS["methodological"]);
@@ -3051,7 +3070,7 @@ var SynthesisModal = class extends import_obsidian4.Modal {
         cls: "setting-item-description"
       });
     }
-    new import_obsidian4.Setting(contentEl).setName("Additional Context (optional)").setDesc("Tell the AI what you are working on or what to focus on.").addTextArea(
+    new import_obsidian6.Setting(contentEl).setName("Additional Context (optional)").setDesc("Tell the AI what you are working on or what to focus on.").addTextArea(
       (text) => text.setPlaceholder(
         "e.g. I am writing a dissertation chapter on formative assessment in higher education. Focus on themes related to feedback and student agency."
       ).setValue(this.userContext).onChange((value) => {
@@ -3067,13 +3086,13 @@ var SynthesisModal = class extends import_obsidian4.Modal {
         text: `Free tier: ${remaining} synthesis remaining this month.`,
         cls: "setting-item-description"
       });
-      new import_obsidian4.Setting(contentEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
+      new import_obsidian6.Setting(contentEl).setName("Upgrade to Pro").setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon \u2014 lock in early access now with code PRODUCTHUNT (valid 1 month).").addButton((button) => {
         button.setButtonText("Get Pro license").onClick(() => {
           window.open(GUMROAD_URL, "_blank");
         });
       });
     }
-    const buttonSetting = new import_obsidian4.Setting(contentEl).addButton((btn) => {
+    const buttonSetting = new import_obsidian6.Setting(contentEl).addButton((btn) => {
       btn.setButtonText("Run Synthesis").setCta().onClick(async () => {
         await this.runSynthesis(btn);
       });
@@ -3082,15 +3101,15 @@ var SynthesisModal = class extends import_obsidian4.Modal {
   async runSynthesis(btn) {
     if (this.isRunning) return;
     if (!this.plugin.llmProvider) {
-      new import_obsidian4.Notice("\u274C No API key configured. Please add your API key in Settings.");
+      new import_obsidian6.Notice("\u274C No API key configured. Please add your API key in Settings.");
       return;
     }
     if (this.sourceType === "folder" && !this.folderPath) {
-      new import_obsidian4.Notice("\u274C Please enter a folder path.");
+      new import_obsidian6.Notice("\u274C Please enter a folder path.");
       return;
     }
     if (this.sourceType === "tag" && !this.tag) {
-      new import_obsidian4.Notice("\u274C Please enter a tag.");
+      new import_obsidian6.Notice("\u274C Please enter a tag.");
       return;
     }
     this.isRunning = true;
@@ -3116,14 +3135,14 @@ var SynthesisModal = class extends import_obsidian4.Modal {
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(file);
       }
-      new import_obsidian4.Notice(
+      new import_obsidian6.Notice(
         `\u2705 Done! Synthesized ${result.sourceCount} notes \u2192 ${result.noteTitle} (${result.inputTokens + result.outputTokens} tokens used)`
       );
     } catch (error) {
       if (error.message && error.message.includes("Free tier limit reached")) {
         new ProUpgradeModal(this.app).open();
       } else {
-        new import_obsidian4.Notice(`\u274C Synthesis failed: ${error.message}`);
+        new import_obsidian6.Notice(`\u274C Synthesis failed: ${error.message}`);
       }
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {
@@ -3135,7 +3154,7 @@ var SynthesisModal = class extends import_obsidian4.Modal {
     contentEl.empty();
   }
 };
-var ProUpgradeModal = class extends import_obsidian4.Modal {
+var ProUpgradeModal = class extends import_obsidian6.Modal {
   constructor(app) {
     super(app);
   }
@@ -3161,7 +3180,7 @@ var ProUpgradeModal = class extends import_obsidian4.Modal {
 };
 
 // src/main.ts
-var LiteratureReviewSynthesizer = class extends import_obsidian5.Plugin {
+var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
   constructor() {
     super(...arguments);
     this.llmProvider = null;
@@ -3176,7 +3195,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian5.Plugin {
       name: "Open Literature Review Synthesizer",
       callback: () => {
         if (!this.llmProvider) {
-          new import_obsidian5.Notice(
+          new import_obsidian7.Notice(
             "\u26A0\uFE0F Please configure your API key in Settings before running a synthesis."
           );
           return;
@@ -3186,7 +3205,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian5.Plugin {
     });
     this.addRibbonIcon("book-open", "Literature Review Synthesizer", () => {
       if (!this.llmProvider) {
-        new import_obsidian5.Notice(
+        new import_obsidian7.Notice(
           "\u26A0\uFE0F Please configure your API key in Settings before running a synthesis."
         );
         return;
@@ -3194,7 +3213,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian5.Plugin {
       new SynthesisModal(this.app, this).open();
     });
     console.log("Literature Review Synthesizer loaded.");
-    new import_obsidian5.Notice("Literature Review Synthesizer is active.");
+    new import_obsidian7.Notice("Literature Review Synthesizer is active.");
   }
   async onunload() {
     console.log("Literature Review Synthesizer unloaded.");
