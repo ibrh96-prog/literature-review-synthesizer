@@ -30,3 +30,6 @@ npm-debug.log*
 .env
 .env.local
 .env.*
+
+# Obsidian plugin settings (contains API keys)
+data.json
