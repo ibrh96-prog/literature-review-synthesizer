@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice, TFolder, ButtonComponent } from "obsidian";
+import { App, Modal, Setting, Notice, TFile, ButtonComponent } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS } from "./prompts";
 import { SynthesisEngine } from "./synthesis-engine";
@@ -135,7 +135,7 @@ export class SynthesisModal extends Modal {
     }
 
     // ── RUN BUTTON ────────────────────────────────────────────
-    const buttonSetting = new Setting(contentEl).addButton((btn) => {
+    new Setting(contentEl).addButton((btn) => {
       btn
         .setButtonText("Run Synthesis")
         .setCta()
@@ -195,9 +195,9 @@ export class SynthesisModal extends Modal {
 
       // Open the generated note
       const file = this.app.vault.getAbstractFileByPath(result.notePath);
-      if (file) {
+      if (file instanceof TFile) {
         const leaf = this.app.workspace.getLeaf(false);
-        await leaf.openFile(file as any);
+        await leaf.openFile(file);
       }
 
       new Notice(

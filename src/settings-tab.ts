@@ -15,7 +15,7 @@ export class SettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("General").setHeading();
+    new Setting(containerEl).setName("Source").setHeading();
 
     new Setting(containerEl).setName("LLM Provider").setHeading();
 

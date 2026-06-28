@@ -1,6 +1,16 @@
 import { requestUrl } from "obsidian";
 import { LLMProvider, LLMMessage, LLMResponse } from "./llm-provider";
 
+interface AnthropicMessageResponse {
+  content: { text: string }[];
+  usage: { input_tokens: number; output_tokens: number };
+  model: string;
+}
+
+interface AnthropicErrorResponse {
+  error?: { message?: string };
+}
+
 export class AnthropicAdapter implements LLMProvider {
   name = "Anthropic";
   private apiKey: string;
@@ -52,7 +62,7 @@ export class AnthropicAdapter implements LLMProvider {
     if (response.status >= 400) {
       let message = `HTTP ${response.status}`;
       try {
-        const error = response.json;
+        const error = response.json as AnthropicErrorResponse;
         message = error?.error?.message || message;
       } catch {
         message = response.text?.slice(0, 200) || message;
@@ -60,7 +70,7 @@ export class AnthropicAdapter implements LLMProvider {
       throw new Error(`Anthropic API error: ${message}`);
     }
 
-    const data = response.json;
+    const data = response.json as AnthropicMessageResponse;
 
     return {
       content: data.content[0].text,

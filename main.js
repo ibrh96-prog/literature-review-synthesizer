@@ -2359,7 +2359,7 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian.Setting(containerEl).setName("General").setHeading();
+    new import_obsidian.Setting(containerEl).setName("Source").setHeading();
     new import_obsidian.Setting(containerEl).setName("LLM Provider").setHeading();
     new import_obsidian.Setting(containerEl).setName("Provider").setDesc("Choose your AI provider.").addDropdown(
       (drop) => drop.addOption("openai", "OpenAI (& compatible)").addOption("anthropic", "Anthropic").setValue(this.plugin.settings.provider).onChange(async (value) => {
@@ -3090,7 +3090,7 @@ var SynthesisModal = class extends import_obsidian6.Modal {
         });
       });
     }
-    const buttonSetting = new import_obsidian6.Setting(contentEl).addButton((btn) => {
+    new import_obsidian6.Setting(contentEl).addButton((btn) => {
       btn.setButtonText("Run Synthesis").setCta().onClick(async () => {
         await this.runSynthesis(btn);
       });
@@ -3135,7 +3135,7 @@ var SynthesisModal = class extends import_obsidian6.Modal {
       await this.plugin.saveSettings();
       this.close();
       const file = this.app.vault.getAbstractFileByPath(result.notePath);
-      if (file) {
+      if (file instanceof import_obsidian6.TFile) {
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(file);
       }
@@ -3199,7 +3199,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
     this.addSettingTab(new SettingsTab(this.app, this));
     this.addCommand({
       id: "open-synthesizer",
-      name: "Open Literature Review Synthesizer",
+      name: "Open synthesizer",
       callback: () => {
         if (!this.llmProvider) {
           new import_obsidian7.Notice(
@@ -3230,7 +3230,7 @@ var LiteratureReviewSynthesizer = class extends import_obsidian7.Plugin {
     console.log("Literature Review Synthesizer loaded.");
     new import_obsidian7.Notice("Literature Review Synthesizer is active.");
   }
-  async onunload() {
+  onunload() {
     console.log("Literature Review Synthesizer unloaded.");
   }
   initializeLLMProvider() {

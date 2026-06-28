@@ -101,9 +101,9 @@ export class NoteCollector {
     }
 
     if (cache?.frontmatter?.tags) {
-      const fmTags = cache.frontmatter.tags;
+      const fmTags = cache.frontmatter.tags as unknown;
       if (Array.isArray(fmTags)) {
-        tags.push(...fmTags);
+        tags.push(...(fmTags as string[]));
       } else if (typeof fmTags === "string") {
         tags.push(fmTags);
       }

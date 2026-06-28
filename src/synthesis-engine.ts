@@ -1,7 +1,7 @@
 import { App, Notice, TFolder } from "obsidian";
 import { LiteratureReviewSettings, FREE_TIER_LIFETIME_LIMIT } from "./settings";
 import { LLMProvider } from "./llm-provider";
-import { NoteCollector } from "./note-collector";
+import { NoteCollector, CollectedNote } from "./note-collector";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS, getSystemPrompt, getPromptForMode } from "./prompts";
 
 export interface SynthesisRequest {
@@ -62,7 +62,7 @@ export class SynthesisEngine {
     // ── 2-5. Collect notes, call LLM, write output note ───────
     try {
       new Notice("Collecting notes...");
-      let notes;
+      let notes: CollectedNote[];
 
       if (request.sourceType === "folder" && request.folderPath) {
         notes = await this.noteCollector.collectFromFolder(request.folderPath);

@@ -26,7 +26,7 @@ export default class LiteratureReviewSynthesizer extends Plugin {
 
     this.addCommand({
       id: "open-synthesizer",
-      name: "Open Literature Review Synthesizer",
+      name: "Open synthesizer",
       callback: () => {
         if (!this.llmProvider) {
           new Notice(
@@ -60,7 +60,7 @@ export default class LiteratureReviewSynthesizer extends Plugin {
     new Notice("Literature Review Synthesizer is active.");
   }
 
-  async onunload() {
+  onunload() {
     console.log("Literature Review Synthesizer unloaded.");
   }
 
@@ -91,7 +91,7 @@ export default class LiteratureReviewSynthesizer extends Plugin {
     this.settings = Object.assign(
       {},
       DEFAULT_SETTINGS,
-      await this.loadData()
+      (await this.loadData()) as Partial<LiteratureReviewSettings>
     );
   }
 

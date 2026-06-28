@@ -30,6 +30,11 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
+interface LicensePayloadStructure {
+  payload: LicensePayload;
+  signature: string;
+}
+
 export async function validateLicense(
   licenseKey: string,
   email: string
@@ -46,9 +51,9 @@ export async function validateLicense(
       return { valid: false, error: "Invalid license key format." };
     }
 
-    let licenseData: { payload: LicensePayload; signature: string };
+    let licenseData: LicensePayloadStructure;
     try {
-      licenseData = JSON.parse(decoded);
+      licenseData = JSON.parse(decoded) as LicensePayloadStructure;
     } catch {
       return { valid: false, error: "Invalid license key structure." };
     }

@@ -3,6 +3,16 @@ import { LLMProvider, LLMMessage, LLMResponse } from "./llm-provider";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 
+interface OpenAIChatResponse {
+  choices: { message: { content: string } }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  model?: string;
+}
+
+interface OpenAIErrorResponse {
+  error?: { message?: string };
+}
+
 export class OpenAIAdapter implements LLMProvider {
   name = "OpenAI";
   private apiKey: string;
@@ -55,7 +65,7 @@ export class OpenAIAdapter implements LLMProvider {
     if (response.status >= 400) {
       let message = `HTTP ${response.status}`;
       try {
-        const error = response.json;
+        const error = response.json as OpenAIErrorResponse;
         message = error?.error?.message || message;
       } catch {
         message = response.text?.slice(0, 200) || message;
@@ -63,7 +73,7 @@ export class OpenAIAdapter implements LLMProvider {
       throw new Error(`API error: ${message}`);
     }
 
-    const data = response.json;
+    const data = response.json as OpenAIChatResponse;
     const choice = data.choices[0];
 
     return {
