@@ -123,7 +123,7 @@ export class SynthesisModal extends Modal {
 
       new Setting(contentEl)
         .setName("Upgrade to Pro")
-        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).")
         .addButton((button) => {
           button
             .setButtonText("Get Pro license")
@@ -224,7 +224,7 @@ class ProUpgradeModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl("h2", { text: "Free limit reached" });
     contentEl.createEl("p", {
-      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).",
+      text: "You've used all your free syntheses this month. Upgrade to Pro for unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).",
     });
     const buttonRow = contentEl.createDiv();
     const proButton = buttonRow.createEl("button", { text: "Get Pro license" });

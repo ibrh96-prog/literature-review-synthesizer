@@ -227,7 +227,7 @@ export class SettingsTab extends PluginSettingTab {
 
       new Setting(containerEl)
         .setName("Upgrade to Pro")
-        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code gcw63tz (valid 1 month).")
+        .setDesc("Unlimited syntheses, one-time payment, no subscription. Free tier limits are getting stricter soon — lock in early access now with code PRODUCTHUNT (valid 1 month).")
         .addButton((button) => {
           button
             .setButtonText("Get Pro license")
