@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice, TFolder } from "obsidian";
+import { App, Modal, Setting, Notice, TFolder, ButtonComponent } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
 import { SynthesisMode, SYNTHESIS_MODE_LABELS } from "./prompts";
 import { SynthesisEngine } from "./synthesis-engine";
@@ -22,7 +22,7 @@ export class SynthesisModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl("h2", { text: "Literature Review Synthesizer" });
+    new Setting(contentEl).setName("Literature Review Synthesizer").setHeading();
 
     // ── SOURCE TYPE ───────────────────────────────────────────
     new Setting(contentEl)
@@ -144,7 +144,7 @@ export class SynthesisModal extends Modal {
     });
   }
 
-  async runSynthesis(btn: any) {
+  async runSynthesis(btn: ButtonComponent) {
     if (this.isRunning) return;
 
     // Validate inputs
@@ -197,11 +197,12 @@ export class SynthesisModal extends Modal {
         `✅ Done! Synthesized ${result.sourceCount} notes → ${result.noteTitle}` +
         ` (${result.inputTokens + result.outputTokens} tokens used)`
       );
-    } catch (error) {
-      if (error.message && error.message.includes("Free tier limit reached")) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("Free tier limit reached")) {
         new ProUpgradeModal(this.app).open();
       } else {
-        new Notice(`❌ Synthesis failed: ${error.message}`);
+        new Notice(`❌ Synthesis failed: ${msg}`);
       }
       btn.setButtonText("Run Synthesis").setDisabled(false);
     } finally {

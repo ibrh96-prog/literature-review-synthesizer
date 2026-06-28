@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import LiteratureReviewSynthesizer from "./main";
-import { FREE_TIER_MONTHLY_LIMIT } from "./settings";
+import { FREE_TIER_MONTHLY_LIMIT, OpenAIModel, AnthropicModel } from "./settings";
 import { validateLicense, GUMROAD_URL } from "./license-validator";
 
 export class SettingsTab extends PluginSettingTab {
@@ -15,9 +15,9 @@ export class SettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h1", { text: "Literature Review Synthesizer" });
+    new Setting(containerEl).setName("Literature Review Synthesizer").setHeading();
 
-    containerEl.createEl("h2", { text: "LLM Provider" });
+    new Setting(containerEl).setName("LLM Provider").setHeading();
 
     new Setting(containerEl)
       .setName("Provider")
@@ -74,8 +74,8 @@ export class SettingsTab extends PluginSettingTab {
           text
             .setPlaceholder("e.g. meta-llama/llama-3.1-8b-instruct")
             .setValue(this.plugin.settings.openaiModel)
-            .onChange(async (value: any) => {
-              this.plugin.settings.openaiModel = value.trim();
+            .onChange(async (value: string) => {
+              this.plugin.settings.openaiModel = value.trim() as OpenAIModel;
               await this.plugin.saveSettings();
             })
         );
@@ -104,7 +104,7 @@ export class SettingsTab extends PluginSettingTab {
             .addOption("claude-sonnet-4-5", "Claude Sonnet")
             .addOption("claude-haiku-4-5", "Claude Haiku")
             .setValue(this.plugin.settings.anthropicModel)
-            .onChange(async (value: any) => {
+            .onChange(async (value: AnthropicModel) => {
               this.plugin.settings.anthropicModel = value;
               await this.plugin.saveSettings();
             })
@@ -131,7 +131,7 @@ export class SettingsTab extends PluginSettingTab {
         })
       );
 
-    containerEl.createEl("h2", { text: "Generation Settings" });
+    new Setting(containerEl).setName("Generation Settings").setHeading();
 
     new Setting(containerEl)
       .setName("Temperature")
@@ -162,7 +162,7 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h2", { text: "Output Settings" });
+    new Setting(containerEl).setName("Output Settings").setHeading();
 
     new Setting(containerEl)
       .setName("Output Folder")
@@ -187,13 +187,13 @@ export class SettingsTab extends PluginSettingTab {
           .addOption("Chicago", "Chicago")
           .addOption("Harvard", "Harvard")
           .setValue(this.plugin.settings.citationFormat)
-          .onChange(async (value: any) => {
+          .onChange(async (value: "APA" | "MLA" | "Chicago" | "Harvard") => {
             this.plugin.settings.citationFormat = value;
             await this.plugin.saveSettings();
           })
       );
 
-    containerEl.createEl("h2", { text: "License" });
+    new Setting(containerEl).setName("License").setHeading();
 
     if (this.plugin.settings.isProActivated) {
       containerEl.createEl("p", {
@@ -260,7 +260,7 @@ export class SettingsTab extends PluginSettingTab {
               this.plugin.settings.licenseKey = value.trim();
               await this.plugin.saveSettings();
             });
-          text.inputEl.style.width = "100%";
+          text.inputEl.setCssStyles({ width: "100%" });
         });
 
       new Setting(containerEl)

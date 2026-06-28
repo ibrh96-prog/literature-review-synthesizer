@@ -90,10 +90,10 @@ export async function validateLicense(
     }
 
     return { valid: true, payload };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       valid: false,
-      error: `Validation error: ${err?.message || "Unknown error"}`,
+      error: `Validation error: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 }

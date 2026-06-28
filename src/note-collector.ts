@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, TFile, TFolder, CachedMetadata } from "obsidian";
 
 export interface CollectedNote {
   title: string;
@@ -91,7 +91,7 @@ export class NoteCollector {
     return files;
   }
 
-  private extractTags(cache: any): string[] {
+  private extractTags(cache: CachedMetadata | null): string[] {
     const tags: string[] = [];
 
     if (cache?.tags) {
