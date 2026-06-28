@@ -22,7 +22,7 @@ export class SynthesisModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    new Setting(contentEl).setName("Literature Review Synthesizer").setHeading();
+    new Setting(contentEl).setName("General").setHeading();
 
     // ── SOURCE TYPE ───────────────────────────────────────────
     new Setting(contentEl)

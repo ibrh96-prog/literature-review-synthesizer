@@ -15,7 +15,7 @@ export class SettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("Literature Review Synthesizer").setHeading();
+    new Setting(containerEl).setName("General").setHeading();
 
     new Setting(containerEl).setName("LLM Provider").setHeading();
 
@@ -131,7 +131,7 @@ export class SettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl).setName("Generation Settings").setHeading();
+    new Setting(containerEl).setName("Generation").setHeading();
 
     new Setting(containerEl)
       .setName("Temperature")
@@ -162,7 +162,7 @@ export class SettingsTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl).setName("Output Settings").setHeading();
+    new Setting(containerEl).setName("Output").setHeading();
 
     new Setting(containerEl)
       .setName("Output Folder")

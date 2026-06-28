@@ -2360,7 +2360,7 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian.Setting(containerEl).setName("Literature Review Synthesizer").setHeading();
+    new import_obsidian.Setting(containerEl).setName("General").setHeading();
     new import_obsidian.Setting(containerEl).setName("LLM Provider").setHeading();
     new import_obsidian.Setting(containerEl).setName("Provider").setDesc("Choose your AI provider.").addDropdown(
       (drop) => drop.addOption("openai", "OpenAI (& compatible)").addOption("anthropic", "Anthropic").setValue(this.plugin.settings.provider).onChange(async (value) => {
@@ -2423,7 +2423,7 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
         }
       })
     );
-    new import_obsidian.Setting(containerEl).setName("Generation Settings").setHeading();
+    new import_obsidian.Setting(containerEl).setName("Generation").setHeading();
     new import_obsidian.Setting(containerEl).setName("Temperature").setDesc("Controls creativity. Lower = more focused, higher = more creative. (0.0 \u2013 1.0)").addSlider(
       (slider) => slider.setLimits(0, 1, 0.1).setValue(this.plugin.settings.temperature).setDynamicTooltip().onChange(async (value) => {
         this.plugin.settings.temperature = value;
@@ -2436,7 +2436,7 @@ var SettingsTab = class extends import_obsidian.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian.Setting(containerEl).setName("Output Settings").setHeading();
+    new import_obsidian.Setting(containerEl).setName("Output").setHeading();
     new import_obsidian.Setting(containerEl).setName("Output Folder").setDesc("Where synthesized notes will be saved in your vault.").addText(
       (text) => text.setPlaceholder("Literature Reviews").setValue(this.plugin.settings.outputFolder).onChange(async (value) => {
         this.plugin.settings.outputFolder = value.trim();
@@ -3032,7 +3032,7 @@ var SynthesisModal = class extends import_obsidian6.Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    new import_obsidian6.Setting(contentEl).setName("Literature Review Synthesizer").setHeading();
+    new import_obsidian6.Setting(contentEl).setName("General").setHeading();
     new import_obsidian6.Setting(contentEl).setName("Source Type").setDesc("How do you want to select your notes?").addDropdown(
       (drop) => drop.addOption("folder", "By Folder").addOption("tag", "By Tag").setValue(this.sourceType).onChange((value) => {
         this.sourceType = value;
